@@ -2,6 +2,7 @@ const moduleID = 'proficiency-levels';
 
 const proficiencyBonusMap = {
     1: 2,
+    0.5: 1,
     2: 4,
     3: 6,
     4: 8,
@@ -46,6 +47,8 @@ Hooks.once('init', () => {
     libWrapper.register(moduleID, 'dnd5e.applications.actor.ActorSheet5e.prototype._onToggleAbilityProficiency', newToggleAbilityProficiency, 'OVERRIDE');
 
     libWrapper.register(moduleID, 'CONFIG.Item.documentClass.prototype.getAttackToHit', newGetAttackToHit, 'WRAPPER');
+
+    libWrapper.register(moduleID, 'CONFIG.Item.documentClass.prototype.rollToolCheck', newRollToolCheck, 'WRAPPER');
 });
 
 
@@ -69,10 +72,17 @@ Hooks.on('renderActorAbilityConfig', (app, [html], appData) => {
     const proficiencyLevel = appData.ability.proficient;
 
     const proficiencySelect = html.querySelector(`select[name="system.abilities.${abilityID}.proficient"]`);
-    const option = document.createElement('option');
-    option.value = '2';
-    option.text = 'Expertise';
-    proficiencySelect.appendChild(option);
+
+    // const halfOption = document.createElement('option');
+    // halfOption.value = '0.5';
+    // halfOption.text = 'Half Proficient';
+    // proficiencySelect.appendChild(halfOption);
+    
+    const expertiseOption = document.createElement('option');
+    expertiseOption.value = '2';
+    expertiseOption.text = 'Expertise';
+    proficiencySelect.appendChild(expertiseOption);
+
     for (const [value, prof] of Object.entries(newProficiencyLevels)) {
         const option = document.createElement('option');
         option.value = value;
@@ -229,9 +239,23 @@ function newGetAttackToHit(wrapped) {
     return res;
 }
 
+async function newRollToolCheck(wrapped, options = {}) {
+    const item = this;
+    const proficiencyLevel = item.system.proficient;
+    const { actor } = item;
+    Object.defineProperty(item.system.prof, 'term', {
+        get: function () { return getBonus(actor, proficiencyLevel) },
+        configurable: true
+    });
+
+    return wrapped(options);
+}
+
 
 function getBonus(actor, proficiencyLevel) {
-    return [0, 0.5].includes(proficiencyLevel)
-        ? 0
-        : (actor.system.details.level || Math.max(1, actor.system.details.cr)) + proficiencyBonusMap[proficiencyLevel];
+    const level = (actor.system.details.level || Math.max(1, actor.system.details.cr));
+
+    if (!proficiencyLevel) return 0;
+    if (proficiencyLevel === 0.5) return Math.floor(level / 2) + 1;
+    return level + proficiencyBonusMap[proficiencyLevel];
 }
