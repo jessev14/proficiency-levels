@@ -40,9 +40,12 @@ Hooks.once('init', () => {
     };
 
     libWrapper.register(moduleID, 'CONFIG.Actor.documentClass.prototype.rollSkill', newRollSkill, 'WRAPPER');
-    libWrapper.register(moduleID, 'CONFIG.Actor.documentClass.prototype.rollAbilitySave', newRollAbilitySave, 'WRAPPER');
     libWrapper.register(moduleID, 'dnd5e.applications.actor.ActorSheet5e.prototype._onCycleSkillProficiency', newCycleSkillProficiency, 'OVERRIDE');
+
+    libWrapper.register(moduleID, 'CONFIG.Actor.documentClass.prototype.rollAbilitySave', newRollAbilitySave, 'WRAPPER');
     libWrapper.register(moduleID, 'dnd5e.applications.actor.ActorSheet5e.prototype._onToggleAbilityProficiency', newToggleAbilityProficiency, 'OVERRIDE');
+
+    libWrapper.register(moduleID, 'CONFIG.Item.documentClass.prototype.getAttackToHit', newGetAttackToHit, 'WRAPPER');
 });
 
 
@@ -120,6 +123,37 @@ Hooks.on('renderActorSheet5e', (app, [html], appData) => {
     }
 });
 
+Hooks.on('renderItemSheet5e', (app, [html], appData) => {
+    const item = app.object;
+    const proficiencyLevelFlag = item.getFlag(moduleID, 'proficiencyLevel') || 0;
+    let injectLocation;
+    
+    if (item.type === 'weapon') {
+        const profCheck = html.querySelector('input[type="checkbox"][name="system.proficient"]');
+        const profLabel = profCheck.parentElement;
+        injectLocation = profLabel.parentElement.parentElement;
+        profCheck.parentElement.remove();
+    } else if (item.type === 'spell') injectLocation = html.querySelector('div.spell-components.form-group.stacked');
+    else if (item.type === 'feat') injectLocation = html.querySelector('div.form-group.input-select');
+    else return;
+
+    const proficiencyDiv = document.createElement('div');
+    proficiencyDiv.classList.add('form-group');
+    let options = ``;
+    for (const [value, prof] of Object.entries(CONFIG.DND5E.proficiencyLevels)) {
+        if (value === "0.5") continue;
+
+        options += `<option value="${value}" ${proficiencyLevelFlag === parseInt(value) ? 'selected' : ''}>${prof}</option>`
+    }
+    proficiencyDiv.innerHTML =`
+        <label>Proficiency Level</label>
+        <select name="flags.${moduleID}.proficiencyLevel" data-dtype="Number">
+            ${options}
+        </select>
+    `;
+    injectLocation.before(proficiencyDiv);
+});
+
 
 async function newRollSkill(wrapped, skillID, options = {}) {
     const actor = this;
@@ -178,6 +212,22 @@ function newToggleAbilityProficiency(event) {
     field.value = levels[next % 9];
 
     return this._onSubmit(event);
+}
+
+function newGetAttackToHit(wrapped) {
+    const res = wrapped();
+    if (!res) return res;
+
+    const { rollData } = res;
+    if (!rollData) return res;
+    
+    const proficiencyLevelFlag = this.getFlag(moduleID, 'proficiencyLevel');
+    if (!proficiencyLevelFlag) return res;
+
+    const actorLevel = this.actor?.system.details.level || 0;
+    rollData.prof = proficiencyLevelFlag * 2 + actorLevel;
+
+    return res;
 }
 
 
