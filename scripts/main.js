@@ -193,7 +193,6 @@ function newCycleSkillProficiency(event) {
     const levels = [0, 0.5, 1, 2, 3, 4, 5, 6, 7];
     let idx = levels.indexOf(source.value);
     const next = idx + (event.type === "click" ? 1 : 8);
-    // lg(levels[next % 9])
     field.value = levels[next % 9];
 
     return this._onSubmit(event);
