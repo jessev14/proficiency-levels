@@ -148,6 +148,17 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
         const choices = await dnd5e.applications.ProficiencySelector.getChoices(itemType)
         for (const [k, v] of Object.entries(choices)) getFlagDataChoices(k, v);
 
+        if (itemType === 'armor') {
+            const proficiencyValue = flagData.unarmored;
+            if (proficiencyValue) {
+                const li = document.createElement('li');
+                li.classList.add('tag');
+                li.innerText = 'Unarmored';
+                li.style.color = proficiencyColorMap[proficiencyValue];
+                ul.prepend(li);
+            };
+        }
+
         function getFlagDataChoices(k, v) {
             const children = Object.entries(v.children || {});
             for (const [ck, cv] of children) getFlagDataChoices(ck, cv);
@@ -191,7 +202,6 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
 });
 
 Hooks.on('renderProficiencySelector', (app, [html], appData) => {
-    lg({ app, html, appData });
     const isWeapon = app.attribute === 'system.traits.weaponProf';
     const isArmor = app.attribute === 'system.traits.armorProf';
     if (!isWeapon && !isArmor) return;
@@ -216,6 +226,25 @@ Hooks.on('renderProficiencySelector', (app, [html], appData) => {
         const label = li.querySelector('label');
         label.classList.add(moduleID);
         label.appendChild(select);
+    }
+
+    if (selector === 'armor') {
+        const select = html.querySelector('select').cloneNode(true);
+        select.name = `flags.${moduleID}.armor.unarmored`;
+        const flagData = app.object.getFlag(moduleID, 'armor.unarmored');
+        for (const option of select.querySelectorAll('option')) {
+            if (option.value == flagData) {
+                option.selected = true;
+                break;
+            }
+        }
+        const label = document.createElement('label');
+        label.classList.add('checkbox', moduleID);
+        label.innerText = 'Unarmored';
+        label.appendChild(select);
+        const li = document.createElement('li');
+        li.appendChild(label);
+        html.querySelector('ol').prepend(li);
     }
 
     const og_prepareUpdateData = app._prepareUpdateData;
@@ -329,12 +358,18 @@ function new_prepareArmorClass(wrapped) {
     const armorProficiencies = this.getFlag(moduleID, 'armor');
     if (!armorProficiencies) return;
 
+    let proficiencyLevel;
     const { armor } = this;
-    const { baseItem } = armor?.system || {};
-    const armorType = armor?.system.armor.type;
-    const proficiencyLevel = Math.max(armorProficiencies[baseItem] || 0, armorProficiencies[CONFIG.DND5E.armorProficienciesMap[armorType]] || 0);
+    if (armor) {
+        const { baseItem } = armor?.system || {};
+        const armorType = armor?.system.armor.type;
+        proficiencyLevel = Math.max(armorProficiencies[baseItem] || 0, armorProficiencies[CONFIG.DND5E.armorProficienciesMap[armorType]] || 0);
+    } else {
+        proficiencyLevel = this.getFlag(moduleID, 'armor.unarmored');
+    }
     const proficiencyBonus = getBonus(this, proficiencyLevel);
     if (proficiencyBonus) this.system.attributes.ac.value += proficiencyBonus;
+
 }
 
 async function newRollToolCheck(wrapped, options = {}) {
