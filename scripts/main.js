@@ -52,7 +52,7 @@ Hooks.once('init', () => {
 
     libWrapper.register(moduleID, 'CONFIG.Actor.documentClass.prototype._prepareSpellcasting', new__prepareSpellcasting, 'WRAPPER');
 
-    libWrapper.register(moduleID, 'CONFIG.Actor.documentClass.prototype._prepareArmorClass', new__prepareArmorClass, 'WRAPPER');
+    libWrapper.register(moduleID, 'CONFIG.Actor.documentClass.prototype._prepareArmorClass', new_prepareArmorClass, 'WRAPPER');
 });
 
 
@@ -80,7 +80,7 @@ Hooks.on('renderActorAbilityConfig', (app, [html], appData) => {
     // halfOption.value = '0.5';
     // halfOption.text = 'Half Proficient';
     // proficiencySelect.appendChild(halfOption);
-    
+
     const expertiseOption = document.createElement('option');
     expertiseOption.value = '2';
     expertiseOption.text = 'Expertise';
@@ -151,7 +151,7 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
         function getFlagDataChoices(k, v) {
             const children = Object.entries(v.children || {});
             for (const [ck, cv] of children) getFlagDataChoices(ck, cv);
-            
+
             const proficiencyValue = flagData[k];
             if (proficiencyValue) {
                 const li = document.createElement('li');
@@ -191,7 +191,7 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
 });
 
 Hooks.on('renderProficiencySelector', (app, [html], appData) => {
-    lg({app, html, appData});
+    lg({ app, html, appData });
     const isWeapon = app.attribute === 'system.traits.weaponProf';
     const isArmor = app.attribute === 'system.traits.armorProf';
     if (!isWeapon && !isArmor) return;
@@ -310,8 +310,8 @@ function newGetAttackToHit(wrapped) {
         const spellcastingProficiencyLevel = this.actor.getFlag(moduleID, 'spellcasting');
         proficiencyBonus = getBonus(this.actor, spellcastingProficiencyLevel);
     }
-    
-    if(proficiencyBonus) rollData.prof = proficiencyBonus;
+
+    if (proficiencyBonus) rollData.prof = proficiencyBonus;
     return res;
 }
 
@@ -324,7 +324,17 @@ function new__prepareSpellcasting(wrapped) {
 }
 
 function new_prepareArmorClass(wrapped) {
-    wrapepd();
+    wrapped();
+
+    const armorProficiencies = this.getFlag(moduleID, 'armor');
+    if (!armorProficiencies) return;
+
+    const { armor } = this;
+    const { baseItem } = armor?.system || {};
+    const armorType = armor?.system.armor.type;
+    const proficiencyLevel = Math.max(armorProficiencies[baseItem] || 0, armorProficiencies[CONFIG.DND5E.armorProficienciesMap[armorType]] || 0);
+    const proficiencyBonus = getBonus(this, proficiencyLevel);
+    if (proficiencyBonus) this.system.attributes.ac.value += proficiencyBonus;
 }
 
 async function newRollToolCheck(wrapped, options = {}) {
