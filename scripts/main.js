@@ -12,15 +12,15 @@ const proficiencyBonusMap = {
 };
 
 const proficiencyColorMap = {
-    0: '#585858',
-    1: '#4e546a',
-    0.5: '#465079',
-    2: '#3c4b8d',
-    3: '#2942b2',
-    4: '#213fc0',
-    5: '#1f3ec4',
-    6: '#0e36e4',
-    7: '#0030ff',
+    0: '#6c6c6c',
+    1: '#0040ec',
+    0.5: '#00a300',
+    2: '#513503',
+    3: '#e3e5e4',
+    4: '#d4af37',
+    5: '#ffa500',
+    6: '#940094',
+    7: '#c20000',
 };
 
 const newProficiencyLevels = {
