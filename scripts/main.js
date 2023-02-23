@@ -53,7 +53,6 @@ Hooks.once('init', () => {
 
 
 Hooks.on('preUpdateActor', (actor, diff, options, userID) => {
-    lg({ diff })
     const updateData = {};
 
     for (const [id, skl] of Object.entries(diff.system?.skills || {})) {
@@ -92,7 +91,7 @@ Hooks.on('renderActorAbilityConfig', (app, [html], appData) => {
     proficiencySelect.value = proficiencyLevel;
 });
 
-Hooks.on('renderActorSheet5e', (app, [html], appData) => {
+Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
     const actor = app.object;
     const skillsUl = html.querySelector('ul.skills-list');
     for (const skillLi of skillsUl.querySelectorAll('li.skill')) {
@@ -131,39 +130,76 @@ Hooks.on('renderActorSheet5e', (app, [html], appData) => {
         const saveMod = getBonus(actor, proficiencyLevel);
         saveModSpan.innerText = `+${saveMod}`;
     }
-});
 
-Hooks.on('renderItemSheet5e', (app, [html], appData) => {
-    const item = app.object;
-    const proficiencyLevelFlag = item.getFlag(moduleID, 'proficiencyLevel') || 0;
-    let injectLocation;
-    
-    if (item.type === 'weapon') {
-        const profCheck = html.querySelector('input[type="checkbox"][name="system.proficient"]');
-        const profLabel = profCheck.parentElement;
-        injectLocation = profLabel.parentElement.parentElement;
-        profCheck.parentElement.remove();
-    } else if (item.type === 'spell') injectLocation = html.querySelector('div.spell-components.form-group.stacked');
-    else if (item.type === 'feat') injectLocation = html.querySelector('div.form-group.input-select');
-    else return;
+    for (const itemType of ['weapon', 'armor']) {
+        const label = html.querySelector(`label[for="system.traits.${itemType}Prof"]`);
+        if (!label) continue;
 
-    const proficiencyDiv = document.createElement('div');
-    proficiencyDiv.classList.add('form-group');
-    let options = ``;
-    for (const [value, prof] of Object.entries(CONFIG.DND5E.proficiencyLevels)) {
-        if (value === "0.5") continue;
+        const ul = label.nextElementSibling;
+        for (const li of ul.querySelectorAll('li')) li.remove();
 
-        options += `<option value="${value}" ${proficiencyLevelFlag === parseInt(value) ? 'selected' : ''}>${prof}</option>`
+        const flagData = actor.getFlag(moduleID, itemType);
+        if (!flagData) continue;
+
+        const choices = await dnd5e.applications.ProficiencySelector.getChoices(itemType)
+        for (const [k, v] of Object.entries(choices)) getFlagDataChoices(k, v);
+
+        function getFlagDataChoices(k, v) {
+            debugger
+            const children = Object.entries(v.children || {});
+            for (const [ck, cv] of children) getFlagDataChoices(ck, cv);
+            
+            const proficiencyValue = flagData[k];
+            if (proficiencyValue) {
+                const li = document.createElement('li');
+                li.classList.add('tag');
+                li.innerText = v.label;
+                li.style.color = proficiencyColorMap[proficiencyValue];
+                ul.appendChild(li);
+            };
+        }
     }
-    proficiencyDiv.innerHTML =`
-        <label>Proficiency Level</label>
-        <select name="flags.${moduleID}.proficiencyLevel" data-dtype="Number">
-            ${options}
-        </select>
-    `;
-    injectLocation.before(proficiencyDiv);
 });
 
+Hooks.on('renderProficiencySelector', (app, [html], appData) => {
+    lg({app, html, appData});
+    const isWeapon = app.attribute === 'system.traits.weaponProf';
+    const isArmor = app.attribute === 'system.traits.armorProf';
+    if (!isWeapon && !isArmor) return;
+
+    const selector = isWeapon ? 'weapon' : 'armor';
+
+    for (const li of html.querySelectorAll('li')) {
+        const input = li.querySelector('input');
+        const inputName = input.name;
+        input.remove();
+
+        const select = document.createElement('select');
+        select.name = `flags.${moduleID}.${selector}.${inputName}`;
+        select.dataset.dtype = 'Number';
+        for (const [value, prof] of Object.entries(CONFIG.DND5E.proficiencyLevels)) {
+            const option = document.createElement('option');
+            option.value = value;
+            option.innerText = prof;
+            if (app.object.getFlag(moduleID, `${selector}.${inputName}`) == value) option.selected = true;
+            select.appendChild(option);
+        }
+        const label = li.querySelector('label');
+        label.classList.add(moduleID);
+        label.appendChild(select);
+    }
+
+    const og_prepareUpdateData = app._prepareUpdateData;
+    app._prepareUpdateData = function (formData) {
+        const updateData = og_prepareUpdateData.call(app, formData);
+        const isCustom = `system.traits.${selector}Prof.custom` in updateData;
+        if (isCustom) {
+            delete formData.custom;
+            formData[`system.traits.${selector}Prof.custom`] = updateData[`system.traits.${selector}Prof.custom`];
+        }
+        return formData;
+    }
+});
 
 async function newRollSkill(wrapped, skillID, options = {}) {
     const actor = this;
@@ -229,13 +265,24 @@ function newGetAttackToHit(wrapped) {
 
     const { rollData } = res;
     if (!rollData) return res;
+
+    const isWeapon = this.type === 'weapon';
+    const isSpell = this.type === 'spell';
+
+    let proficiencyBonus;
+    if (isWeapon) {
+        debugger
+        const weaponProficiencies = this.actor.getFlag(moduleID, 'weapon');
+        if (!weaponProficiencies) return res;
+
+        const { baseItem, weaponType } = this.system;
+        const proficiencyLevel = Math.max(weaponProficiencies[baseItem] || 0, weaponProficiencies[CONFIG.DND5E.weaponProficienciesMap[weaponType]] || 0);
+        proficiencyBonus = getBonus(this.actor, proficiencyLevel);
+    } else if (isSpell) {
+
+    }
     
-    const proficiencyLevelFlag = this.getFlag(moduleID, 'proficiencyLevel');
-    if (!proficiencyLevelFlag) return res;
-
-    const actorLevel = this.actor?.system.details.level || 0;
-    rollData.prof = proficiencyLevelFlag * 2 + actorLevel;
-
+    if(proficiencyBonus) rollData.prof = proficiencyBonus;
     return res;
 }
 
