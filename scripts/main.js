@@ -51,6 +51,8 @@ Hooks.once('init', () => {
     libWrapper.register(moduleID, 'CONFIG.Item.documentClass.prototype.rollToolCheck', newRollToolCheck, 'WRAPPER');
 
     libWrapper.register(moduleID, 'CONFIG.Actor.documentClass.prototype._prepareSpellcasting', new__prepareSpellcasting, 'WRAPPER');
+
+    libWrapper.register(moduleID, 'CONFIG.Actor.documentClass.prototype._prepareArmorClass', new__prepareArmorClass, 'WRAPPER');
 });
 
 
@@ -134,7 +136,7 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
     }
 
     for (const itemType of ['weapon', 'armor']) {
-        const label = html.querySelector(`label[for="system.traits.${itemType}Prof"]`);
+        const label = html.querySelector(`label[for="system.traits.${itemType}Prof"]`) || html.querySelector(`a[data-type="${itemType}"]`);
         if (!label) continue;
 
         const ul = label.nextElementSibling;
@@ -178,7 +180,7 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
     }
 
     const spellcastingAttributeDiv = html.querySelector('div.spellcasting-attribute');
-    spellcastingAttributeDiv.after(spellcastingProficiencyDiv);
+    if (spellcastingAttributeDiv) spellcastingAttributeDiv.after(spellcastingProficiencyDiv);
 
     const spellAttackModSpan = html.querySelector('span.spell-attack-mod');
     if (spellAttackModSpan) {
@@ -319,6 +321,10 @@ function new__prepareSpellcasting(wrapped) {
     const spellcastingProficiencyLevel = this.getFlag(moduleID, 'spellcasting') || 0;
     const proficiencyBonus = getBonus(this, spellcastingProficiencyLevel);
     this.system.attributes.spelldc = 8 + proficiencyBonus;
+}
+
+function new_prepareArmorClass(wrapped) {
+    wrapepd();
 }
 
 async function newRollToolCheck(wrapped, options = {}) {
