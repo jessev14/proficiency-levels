@@ -49,6 +49,8 @@ Hooks.once('init', () => {
     libWrapper.register(moduleID, 'CONFIG.Item.documentClass.prototype.getAttackToHit', newGetAttackToHit, 'WRAPPER');
 
     libWrapper.register(moduleID, 'CONFIG.Item.documentClass.prototype.rollToolCheck', newRollToolCheck, 'WRAPPER');
+
+    libWrapper.register(moduleID, 'CONFIG.Actor.documentClass.prototype._prepareSpellcasting', new__prepareSpellcasting, 'WRAPPER');
 });
 
 
@@ -145,7 +147,6 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
         for (const [k, v] of Object.entries(choices)) getFlagDataChoices(k, v);
 
         function getFlagDataChoices(k, v) {
-            debugger
             const children = Object.entries(v.children || {});
             for (const [ck, cv] of children) getFlagDataChoices(ck, cv);
             
@@ -158,6 +159,32 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
                 ul.appendChild(li);
             };
         }
+    }
+
+    const spellcastingProficiencyDiv = document.createElement('div');
+    spellcastingProficiencyDiv.classList.add('spellcasting-attribute');
+    spellcastingProficiencyDiv.innerHTML = `
+        <p>Spellcasting Proficiency</p>
+        <select name="flags.${moduleID}.spellcasting" data-dtype="Number">
+        </select>
+    `;
+    const spellcastingProficiencySelect = spellcastingProficiencyDiv.querySelector('select');
+    for (const [k, v] of Object.entries(CONFIG.DND5E.proficiencyLevels)) {
+        const option = document.createElement('option');
+        option.value = k;
+        if (actor.getFlag(moduleID, 'spellcasting') == k) option.selected = true;
+        option.innerText = v;
+        spellcastingProficiencySelect.appendChild(option);
+    }
+
+    const spellcastingAttributeDiv = html.querySelector('div.spellcasting-attribute');
+    spellcastingAttributeDiv.after(spellcastingProficiencyDiv);
+
+    const spellAttackModSpan = html.querySelector('span.spell-attack-mod');
+    if (spellAttackModSpan) {
+        const spellcastingProficiencyLevel = actor.getFlag(moduleID, 'spellcasting');
+        spellAttackModSpan.innerText = `+ ${getBonus(actor, spellcastingProficiencyLevel)}`
+        spellAttackModSpan.title = '';
     }
 });
 
@@ -271,7 +298,6 @@ function newGetAttackToHit(wrapped) {
 
     let proficiencyBonus;
     if (isWeapon) {
-        debugger
         const weaponProficiencies = this.actor.getFlag(moduleID, 'weapon');
         if (!weaponProficiencies) return res;
 
@@ -279,11 +305,20 @@ function newGetAttackToHit(wrapped) {
         const proficiencyLevel = Math.max(weaponProficiencies[baseItem] || 0, weaponProficiencies[CONFIG.DND5E.weaponProficienciesMap[weaponType]] || 0);
         proficiencyBonus = getBonus(this.actor, proficiencyLevel);
     } else if (isSpell) {
-
+        const spellcastingProficiencyLevel = this.actor.getFlag(moduleID, 'spellcasting');
+        proficiencyBonus = getBonus(this.actor, spellcastingProficiencyLevel);
     }
     
     if(proficiencyBonus) rollData.prof = proficiencyBonus;
     return res;
+}
+
+function new__prepareSpellcasting(wrapped) {
+    wrapped();
+
+    const spellcastingProficiencyLevel = this.getFlag(moduleID, 'spellcasting') || 0;
+    const proficiencyBonus = getBonus(this, spellcastingProficiencyLevel);
+    this.system.attributes.spelldc = 8 + proficiencyBonus;
 }
 
 async function newRollToolCheck(wrapped, options = {}) {
