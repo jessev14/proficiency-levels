@@ -107,6 +107,7 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
 
         const proficiencyA = skillLi.querySelector('a.proficiency-toggle.skill-proficiency');
         proficiencyA.innerHTML = proficiencyLevel;
+        proficiencyA.title = CONFIG.DND5E.proficiencyLevels[proficiencyLevel];
         proficiencyA.style['font-size'] = '15px';
         proficiencyA.style['font-weight'] = '900';
         proficiencyA.style.color = proficiencyColorMap[proficiencyLevel];
@@ -126,6 +127,7 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
 
         const proficiencyA = abilityLi.querySelector('a.proficiency-toggle.ability-proficiency');
         proficiencyA.innerHTML = proficiencyLevel;
+        proficiencyA.title = CONFIG.DND5E.proficiencyLevels[proficiencyLevel];
         proficiencyA.style['font-size'] = '15px';
         proficiencyA.style['font-weight'] = '900';
         proficiencyA.style.color = proficiencyColorMap[proficiencyLevel];
@@ -136,7 +138,7 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
     }
 
     for (const itemType of ['weapon', 'armor']) {
-        const label = html.querySelector(`label[for="system.traits.${itemType}Prof"]`) || html.querySelector(`a[data-type="${itemType}"]`);
+        const label = html.querySelector(`label[for="traits.traits.${itemType}Prof"]`) || html.querySelector(`a[data-type="${itemType}"]`);
         if (!label) continue;
 
         const ul = label.nextElementSibling;
