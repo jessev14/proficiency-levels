@@ -155,6 +155,7 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
             if (proficiencyValue) {
                 const li = document.createElement('li');
                 li.classList.add('tag');
+                li.title = CONFIG.DND5E.proficiencyLevels[proficiencyValue];
                 li.innerText = 'Unarmored';
                 li.style.color = proficiencyColorMap[proficiencyValue];
                 ul.prepend(li);
@@ -169,6 +170,7 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
             if (proficiencyValue) {
                 const li = document.createElement('li');
                 li.classList.add('tag');
+                li.title = CONFIG.DND5E.proficiencyLevels[proficiencyValue];
                 li.innerText = v.label;
                 li.style.color = proficiencyColorMap[proficiencyValue];
                 ul.appendChild(li);
