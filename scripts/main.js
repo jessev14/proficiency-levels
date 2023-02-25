@@ -1,4 +1,7 @@
-const moduleID = 'proficiency-levels';
+import { ProficiencyAdvancement } from './ProficiencyAdvancement.js';
+
+export const moduleID = 'proficiency-levels';
+
 
 const proficiencyBonusMap = {
     1: 2,
@@ -53,6 +56,8 @@ Hooks.once('init', () => {
     libWrapper.register(moduleID, 'CONFIG.Actor.documentClass.prototype._prepareSpellcasting', new__prepareSpellcasting, 'WRAPPER');
 
     libWrapper.register(moduleID, 'CONFIG.Actor.documentClass.prototype._prepareArmorClass', new_prepareArmorClass, 'WRAPPER');
+
+    CONFIG.DND5E.advancementTypes['Proficiency'] = ProficiencyAdvancement;
 });
 
 
@@ -205,16 +210,16 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
     }
 });
 
-Hooks.on('renderProficiencySelector', (app, [html], appData) => {
-    const isWeapon = app.attribute === 'system.traits.weaponProf';
-    const isArmor = app.attribute === 'system.traits.armorProf';
+Hooks.on('renderTraitSelector', (app, [html], appData) => {
+    const isWeapon = app.trait === 'weapon';
+    const isArmor = app.trait === 'armor';
     if (!isWeapon && !isArmor) return;
 
     const selector = isWeapon ? 'weapon' : 'armor';
 
     for (const li of html.querySelectorAll('li')) {
         const input = li.querySelector('input');
-        const inputName = input.name;
+        const inputName = input.name.split('.')[1];
         input.remove();
 
         const select = document.createElement('select');
@@ -224,9 +229,9 @@ Hooks.on('renderProficiencySelector', (app, [html], appData) => {
             const option = document.createElement('option');
             option.value = value;
             option.innerText = prof;
-            if (app.object.getFlag(moduleID, `${selector}.${inputName}`) == value) option.selected = true;
             select.appendChild(option);
         }
+        select.value = app.object.getFlag(moduleID, `${selector}.${inputName}`);
         const label = li.querySelector('label');
         label.classList.add(moduleID);
         label.appendChild(select);
