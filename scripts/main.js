@@ -105,6 +105,7 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
     const skillsUl = html.querySelector('ul.skills-list');
     for (const skillLi of skillsUl.querySelectorAll('li.skill')) {
         const skillID = skillLi.dataset.skill;
+        const skill = actor.system.skills[skillID];
         const proficiencyLevel = actor.flags[moduleID]?.system.skills?.[skillID]?.value || actor.system.skills[skillID].value;
 
         const field = skillLi.querySelector('input');
@@ -118,13 +119,18 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
         proficiencyA.style.color = proficiencyColorMap[proficiencyLevel];
 
         const skillModSpan = skillLi.querySelector('span.skill-mod');
-        const skillMod = getBonus(actor, proficiencyLevel);
+        const skillMod = getBonus(actor, proficiencyLevel) + (skill.mod || 0);
         skillModSpan.innerText = `+${skillMod}`;
+
+        const skillPassiveModspan = skillLi.querySelector('span.skill-passive');
+        const passiveMod = skillMod + 10;
+        skillPassiveModspan.innerText = `(${passiveMod})`;
     }
 
     const abilitiesUl = html.querySelector('ul.ability-scores');
     for (const abilityLi of abilitiesUl.querySelectorAll('li.ability')) {
         const abilityID = abilityLi.dataset.ability;
+        const ability = actor.system.abilities[abilityID];
         const proficiencyLevel = actor.flags[moduleID]?.system.abilities?.[abilityID]?.proficient || actor.system.abilities[abilityID].proficient;
 
         const field = abilityLi.querySelector('input[type="hidden"]');
@@ -138,7 +144,7 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
         proficiencyA.style.color = proficiencyColorMap[proficiencyLevel];
 
         const saveModSpan = abilityLi.querySelector('span.ability-save');
-        const saveMod = getBonus(actor, proficiencyLevel);
+        const saveMod = getBonus(actor, proficiencyLevel) + (ability.mod || 0);
         saveModSpan.innerText = `+${saveMod}`;
     }
 
