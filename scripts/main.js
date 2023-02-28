@@ -120,7 +120,7 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
 
         const skillModSpan = skillLi.querySelector('span.skill-mod');
         const skillMod = getBonus(actor, proficiencyLevel) + (skill.mod || 0);
-        skillModSpan.innerText = `+${skillMod}`;
+        skillModSpan.innerText = `${skillMod > 0 ? '+' : ''}${skillMod}`;
 
         const skillPassiveModspan = skillLi.querySelector('span.skill-passive');
         const passiveMod = skillMod + 10;
@@ -145,7 +145,7 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
 
         const saveModSpan = abilityLi.querySelector('span.ability-save');
         const saveMod = getBonus(actor, proficiencyLevel) + (ability.mod || 0);
-        saveModSpan.innerText = `+${saveMod}`;
+        saveModSpan.innerText = `${saveMod > 0 ? '+' : ''}${saveMod}`;
     }
 
     for (const itemType of ['weapon', 'armor']) {
