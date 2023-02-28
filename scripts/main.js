@@ -105,8 +105,7 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
     const skillsUl = html.querySelector('ul.skills-list');
     for (const skillLi of skillsUl.querySelectorAll('li.skill')) {
         const skillID = skillLi.dataset.skill;
-        const skill = actor.system.skills[skillID];
-        const proficiencyLevel = actor.flags[moduleID]?.system.skills?.[skillID]?.value || actor.system.skills[skillID].value;
+        const proficiencyLevel = actor.flags[moduleID]?.system?.skills?.[skillID]?.value || actor.system.skills[skillID].value;
 
         const field = skillLi.querySelector('input');
         field.value = proficiencyLevel;
@@ -130,7 +129,6 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
     const abilitiesUl = html.querySelector('ul.ability-scores');
     for (const abilityLi of abilitiesUl.querySelectorAll('li.ability')) {
         const abilityID = abilityLi.dataset.ability;
-        const ability = actor.system.abilities[abilityID];
         const proficiencyLevel = actor.flags[moduleID]?.system.abilities?.[abilityID]?.proficient || actor.system.abilities[abilityID].proficient;
 
         const field = abilityLi.querySelector('input[type="hidden"]');
@@ -158,7 +156,7 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
         const flagData = actor.getFlag(moduleID, itemType);
         if (!flagData) continue;
 
-        const choices = await dnd5e.applications.ProficiencySelector.getChoices(itemType)
+        const choices = await dnd5e.documents.Trait.choices(itemType)
         for (const [k, v] of Object.entries(choices)) getFlagDataChoices(k, v);
 
         if (itemType === 'armor') {
