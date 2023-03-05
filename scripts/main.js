@@ -209,9 +209,11 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
     if (spellcastingAttributeDiv) spellcastingAttributeDiv.after(spellcastingProficiencyDiv);
 
     const spellAttackModSpan = html.querySelector('span.spell-attack-mod');
+    const spellcastingAbility = actor.system.abilities[actor.system.attributes.spellcasting];
+    const spellcastingAbilityMod = spellcastingAbility.mod;
     if (spellAttackModSpan) {
         const spellcastingProficiencyLevel = actor.getFlag(moduleID, 'spellcasting');
-        spellAttackModSpan.innerText = `+ ${getBonus(actor, spellcastingProficiencyLevel)}`
+        spellAttackModSpan.innerText = `+ ${getBonus(actor, spellcastingProficiencyLevel) + spellcastingAbilityMod}`
         spellAttackModSpan.title = '';
     }
 });
@@ -362,9 +364,11 @@ function newGetAttackToHit(wrapped) {
 function new__prepareSpellcasting(wrapped) {
     wrapped();
 
+    const spellcastingAbility = this.system.abilities[this.system.attributes.spellcasting];
+    const spellcastingAbilityMod = spellcastingAbility.mod;
     const spellcastingProficiencyLevel = this.getFlag(moduleID, 'spellcasting') || 0;
     const proficiencyBonus = getBonus(this, spellcastingProficiencyLevel);
-    this.system.attributes.spelldc = 8 + proficiencyBonus;
+    this.system.attributes.spelldc = 8 + spellcastingAbilityMod + proficiencyBonus;
 }
 
 function new_prepareArmorClass(wrapped) {
