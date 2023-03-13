@@ -153,7 +153,7 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
         if (!label) continue;
 
         const ul = label.nextElementSibling;
-        for (const li of ul.querySelectorAll('li')) li.remove();
+        for (const li of ul?.querySelectorAll('li') || []) li.remove();
 
         const flagData = actor.getFlag(moduleID, itemType);
         if (!flagData) continue;
@@ -365,6 +365,8 @@ function new__prepareSpellcasting(wrapped) {
     wrapped();
 
     const spellcastingAbility = this.system.abilities[this.system.attributes.spellcasting];
+    if (!spellcastingAbility) return;
+
     const spellcastingAbilityMod = spellcastingAbility.mod;
     const spellcastingProficiencyLevel = this.getFlag(moduleID, 'spellcasting') || 0;
     const proficiencyBonus = getBonus(this, spellcastingProficiencyLevel);
