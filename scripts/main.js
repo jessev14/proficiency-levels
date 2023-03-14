@@ -105,7 +105,9 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
     const skillsUl = html.querySelector('ul.skills-list');
     for (const skillLi of skillsUl.querySelectorAll('li.skill')) {
         const skillID = skillLi.dataset.skill;
-        const skill = actor.system.skills[skillID];
+        const skill = actor.system?.skills?.[skillID];
+        if (!skill) continue;
+        
         const proficiencyLevel = actor.flags[moduleID]?.system?.skills?.[skillID]?.value || actor.system.skills[skillID].value;
 
         const field = skillLi.querySelector('input');
@@ -130,7 +132,9 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
     const abilitiesUl = html.querySelector('ul.ability-scores');
     for (const abilityLi of abilitiesUl.querySelectorAll('li.ability')) {
         const abilityID = abilityLi.dataset.ability;
-        const ability = actor.system.abilities[abilityID];
+        const ability = actor.system?.abilities?.[abilityID];
+        if (!ability) continue;
+
         const proficiencyLevel = actor.flags[moduleID]?.system.abilities?.[abilityID]?.proficient || actor.system.abilities[abilityID].proficient;
 
         const field = abilityLi.querySelector('input[type="hidden"]');
