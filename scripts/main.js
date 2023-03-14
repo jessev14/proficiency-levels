@@ -107,7 +107,7 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
         const skillID = skillLi.dataset.skill;
         const skill = actor.system?.skills?.[skillID];
         if (!skill) continue;
-        
+
         const proficiencyLevel = actor.flags[moduleID]?.system?.skills?.[skillID]?.value || actor.system.skills[skillID].value;
 
         const field = skillLi.querySelector('input');
