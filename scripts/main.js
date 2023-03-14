@@ -102,6 +102,8 @@ Hooks.on('renderActorAbilityConfig', (app, [html], appData) => {
 
 Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
     const actor = app.object;
+    if (!actor.system) return;
+
     const skillsUl = html.querySelector('ul.skills-list');
     for (const skillLi of skillsUl.querySelectorAll('li.skill')) {
         const skillID = skillLi.dataset.skill;
@@ -135,7 +137,7 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
         const ability = actor.system?.abilities?.[abilityID];
         if (!ability) continue;
 
-        const proficiencyLevel = actor.flags[moduleID]?.system.abilities?.[abilityID]?.proficient || actor.system.abilities[abilityID].proficient;
+        const proficiencyLevel = actor.flags?.[moduleID]?.system?.abilities?.[abilityID]?.proficient || actor.system?.abilities?.[abilityID]?.proficient || 0;
 
         const field = abilityLi.querySelector('input[type="hidden"]');
         field.value = proficiencyLevel;
@@ -153,11 +155,12 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
     }
 
     for (const itemType of ['weapon', 'armor']) {
-        const label = html.querySelector(`label[for="traits.traits.${itemType}Prof"]`) || html.querySelector(`a[data-type="${itemType}"]`);
-        if (!label) continue;
-
-        const ul = label.nextElementSibling;
-        for (const li of ul?.querySelectorAll('li') || []) li.remove();
+        const configButton = html.querySelector(`a.trait-selector[data-trait="${itemType}"]`);
+        const formGroup = configButton.closest('div.form-group');
+        const ul = formGroup.querySelector('ul.traits-list');
+        if (!ul) continue;
+        
+        for (const li of ul.querySelectorAll('li')) li.remove();
 
         const flagData = actor.getFlag(moduleID, itemType);
         if (!flagData) continue;
@@ -309,17 +312,19 @@ async function newRollAbilitySave(wrapped, abilityID, options = {}) {
 }
 
 function newCycleSkillProficiency(event) {
+    if ( event.currentTarget.classList.contains("disabled") ) return;
     event.preventDefault();
-    const field = event.currentTarget.previousElementSibling;
-    const skillName = field.parentElement.dataset.skill;
-    const source = this.actor.flags[moduleID]?.system?.skills?.[skillName] ?? this.actor._source.system.skills[skillName];
-    if (!source) return;
+    const parent = event.currentTarget.closest(".skill");
+    const field = parent.querySelector('[name$=".value"]');
+    const value = this.actor._source.system.skills[parent.dataset.skill]?.value ?? 0;
 
-    const levels = [0, 0.5, 1, 2, 3, 4, 5, 6, 7];
-    let idx = levels.indexOf(source.value);
+    // Cycle to the next or previous skill level
+    const levels = [0, 1, 0.5, 2, 3, 4, 5, 6, 7];
+    let idx = levels.indexOf(value);
     const next = idx + (event.type === "click" ? 1 : 8);
     field.value = levels[next % 9];
 
+    // Update the field value and save the form
     return this._onSubmit(event);
 }
 
