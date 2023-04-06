@@ -18,7 +18,6 @@ export class ProficiencyAdvancement extends dnd5e.documents.advancement.Advancem
     }
 
     async apply(level, data) {
-        debugger
         const { actor } = this;
 
         const proficiencies = Object.values(data);
