@@ -22,29 +22,55 @@ export class ProficiencyAdvancement extends dnd5e.documents.advancement.Advancem
         const [proficiencyType, proficiency] = this.configuration.identifier.split('-');
         if (!proficiency) return;
 
-        const newProficiencyLevel = parseFloat(this.configuration.scale[level].value);
-        let oldProficiencyLevel;
+        const levelsToIncrease = parseInt(this.configuration.levels);
+        let oldProficiencyLevel, newProficiencyLevel;
         switch (proficiencyType) {
             case 'abilities':
-                oldProficiencyLevel = actor.system.abilities[proficiency].proficient;
-                if (oldProficiencyLevel >= newProficiencyLevel) return;
+                oldProficiencyLevel = actor.system.abilities[proficiency].proficient || 0;
+                await this.updateSource({ 'configuration.oldProf': oldProficiencyLevel });
+                newProficiencyLevel = Math.min(oldProficiencyLevel + levelsToIncrease, 7);
 
                 return actor.updateSource({ [`system.abilities.${proficiency}.proficient`]: newProficiencyLevel });
             case 'skills':
-                oldProficiencyLevel = actor.flags[moduleID].system.skills[proficiency]?.value;
-                if (oldProficiencyLevel >= newProficiencyLevel) return;
+                oldProficiencyLevel = actor.flags[moduleID]?.system?.skills[proficiency]?.value || 0;
+                await this.updateSource({ 'configuration.oldProf': oldProficiencyLevel });
+                newProficiencyLevel = Math.min(oldProficiencyLevel + levelsToIncrease, 7);
 
                 return actor.updateSource({ [`system.skills.${proficiency}.value`]: newProficiencyLevel });
             case 'weapon':
             case 'armor':
-                oldProficiencyLevel = actor.flags[moduleID][proficiencyType][proficiency];
-                if (oldProficiencyLevel >= newProficiencyLevel) return;
+                oldProficiencyLevel = actor.flags[moduleID]?.[proficiencyType][proficiency] || 0;
+                await this.updateSource({ 'configuration.oldProf': oldProficiencyLevel });
+                newProficiencyLevel = Math.min(oldProficiencyLevel + levelsToIncrease, 7);
 
                 return actor.updateSource({ [`flags.${moduleID}.${proficiencyType}.${proficiency}`]: newProficiencyLevel });
             case 'spellcasting':
-                oldProficiencyLevel = actor.flags[moduleID].spellcasting;
-                if (oldProficiencyLevel >= newProficiencyLevel) return;
+                oldProficiencyLevel = actor.flags[moduleID]?.spellcasting || 0;
+                await this.updateSource({ 'configuration.oldProf': oldProficiencyLevel });
+                newProficiencyLevel = Math.min(oldProficiencyLevel + levelsToIncrease, 7);
 
+                return actor.updateSource({ [`flags.${moduleID}.${proficiencyType}`]: newProficiencyLevel });
+        }
+    }
+
+    async reverse(level) {
+        const { actor } = this;
+
+        const [proficiencyType, proficiency] = this.configuration.identifier.split('-');
+        if (!proficiency) return;
+
+        const newProficiencyLevel = this.configuration.oldProf;
+        if (!newProficiencyLevel) return;
+
+        switch (proficiencyType) {
+            case 'abilities':
+                return actor.updateSource({ [`system.abilities.${proficiency}.proficient`]: newProficiencyLevel });
+            case 'skills':
+                return actor.updateSource({ [`system.skills.${proficiency}.value`]: newProficiencyLevel });
+            case 'weapon':
+            case 'armor':
+                return actor.updateSource({ [`flags.${moduleID}.${proficiencyType}.${proficiency}`]: newProficiencyLevel });
+            case 'spellcasting':
                 return actor.updateSource({ [`flags.${moduleID}.${proficiencyType}`]: newProficiencyLevel });
         }
     }
@@ -104,7 +130,7 @@ class ProficiencyAdvancementConfig extends dnd5e.applications.advancement.Advanc
         identifierSelect.innerHTML += `<optgroup label="Spellcasting"><option value="spellcasting-spellcasting">Spellcasting</option></optgroup></select>`;
 
         data.proficiencySelect = identifierSelect.outerHTML;
-        
+
         return data;
     }
 
