@@ -2,7 +2,7 @@ import { moduleID } from './main.js';
 
 const lg = x => console.log(x);
 
-export class ProficiencyAdvancement extends dnd5e.documents.advancement.Advancement {
+export class ProficiencyAdvancement extends dnd5e.documents.advancement.ScaleValueAdvancement {
 
     static get metadata() {
         return foundry.utils.mergeObject(super.metadata, {
@@ -53,16 +53,16 @@ export class ProficiencyAdvancement extends dnd5e.documents.advancement.Advancem
 
 
 
-class ProficiencyAdvancementConfig extends dnd5e.applications.advancement.AdvancementConfig {
+class ProficiencyAdvancementConfig extends dnd5e.applications.advancement.ScaleValueConfig {
 
-    static get defaultOptions() {
-        return foundry.utils.mergeObject(super.defaultOptions, {
-            template: `modules/${moduleID}/templates/proficiency-advancement-config.hbs`
-        });
-    }
+    async activateListeners($html) {
+        super.activateListeners($html);
+        const [html] = $html;
 
-    async getData() {
-        const data = super.getData();
+        const selectedProficiency = this.advancement.configuration.identifier;
+
+        html.querySelector('p.hint.type-hint').closest('div.form-group').remove();
+        html.querySelector('p.hint.identifier-hint').remove();
 
         const identifierSelect = document.createElement('select');
         identifierSelect.name = 'configuration.identifier';
@@ -103,18 +103,26 @@ class ProficiencyAdvancementConfig extends dnd5e.applications.advancement.Advanc
 
         identifierSelect.innerHTML += `<optgroup label="Spellcasting"><option value="spellcasting-spellcasting">Spellcasting</option></optgroup></select>`;
 
-        data.proficiencySelect = identifierSelect.outerHTML;
-        
-        return data;
+        identifierSelect.value = selectedProficiency;
+        const identifierInput = html.querySelector('input[name="configuration.identifier"]');
+        identifierInput.after(identifierSelect);
+        identifierInput.closest('div.form-group').querySelector('label').innerText = 'Proficiency';
+        identifierInput.remove();
+
+        for (const input of html.querySelector('div.right-column').querySelectorAll('input[type="text"]')) {
+            const characterLevel = parseInt(input.dataset.level);
+            const levelSelect = document.createElement('select');
+            levelSelect.name = `configuration.scale.${characterLevel}.value`;
+            levelSelect.add(new Option('--', ''));
+            for (const [k, v] of Object.entries(CONFIG.DND5E.proficiencyLevels)) {
+                const option = new Option(v, k);
+                levelSelect.add(option);
+            }
+            if (this.advancement.configuration.scale[characterLevel]?.value) levelSelect.value = this.advancement.configuration.scale[characterLevel].value;
+            input.after(levelSelect);
+            input.remove();
+        }
     }
 
-    activateListeners($html) {
-        super.activateListeners($html);
-
-        const [html] = $html;
-
-        const proficiencySelect = html.querySelector('select[name="configuration.identifier"]');
-        proficiencySelect.value = this.advancement.configuration.identifier;
-    }
-
+    _onChangeTitle(event) { }
 }

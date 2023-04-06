@@ -1,0 +1,19 @@
+<form autocomplete="off">
+    {{> "dnd5e.advancement-controls"}}
+
+    <hr>
+
+    <div class="flexrow">
+        <label>
+            Proficiency Type
+        </label>
+        {{{ proficiencySelect }}}
+    </div>
+
+    <div class="flexrow">
+        <label>
+            Levels to Increase
+        </label>
+        <input name="configuration.levels" type="number" value="{{configuration.levels}}" placeholder="1" /> 
+    </div>
+</form>
