@@ -7,13 +7,22 @@
         <label>
             Proficiency Type
         </label>
-        {{{ proficiencySelect }}}
+        <select name="configuration.type">
+            {{selectOptions proficencyTypeSelect selected=configuration.type}}
+        </select>
     </div>
 
     <div class="flexrow">
         <label>
-            Levels to Increase
+            Number of Proficiencies
         </label>
-        <input name="configuration.levels" type="number" value="{{configuration.levels}}" placeholder="1" /> 
+        <input name="configuration.count" type="number" value="{{configuration.count}}" placeholder="1" /> 
+    </div>
+
+    <div class="flexrow">
+        <label>
+            Proficiency Levels to Increase
+        </label>
+        <input name="configuration.increase" type="number" value="{{configuration.increase}}" placeholder="1" /> 
     </div>
 </form>
