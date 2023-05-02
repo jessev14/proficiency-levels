@@ -10,6 +10,7 @@ export class ProficiencyAdvancement extends dnd5e.documents.advancement.Advancem
             order: 70,
             title: 'Proficiency Level',
             hint: 'Upgrade a selected proficiency level when the character reaches a certain level.',
+            multiLevel: true,
             apps: {
                 config: ProficiencyAdvancementConfig,
                 flow: ProficiencyAdvancementFlow
@@ -101,6 +102,7 @@ class ProficiencyAdvancementConfig extends dnd5e.applications.advancement.Advanc
 
     async getData() {
         const data = super.getData();
+        data.showLevelSelector = true;
 
         data.proficencyTypeSelect = {
             ability: 'Saving Throws',
