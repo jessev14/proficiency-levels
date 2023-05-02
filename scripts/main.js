@@ -156,6 +156,8 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
 
     for (const itemType of ['weapon', 'armor']) {
         const configButton = html.querySelector(`a.trait-selector[data-trait="${itemType}"]`);
+        if (!configButton) continue;
+
         const formGroup = configButton.closest('div.form-group');
         const ul = formGroup.querySelector('ul.traits-list');
         if (!ul) continue;
@@ -366,7 +368,7 @@ function newGetAttackToHit(wrapped) {
         proficiencyBonus = getBonus(this.actor, spellcastingProficiencyLevel);
     }
 
-    if (proficiencyBonus) rollData.prof = proficiencyBonus;
+    if (proficiencyBonus !== null) rollData.prof = proficiencyBonus;
     return res;
 }
 
