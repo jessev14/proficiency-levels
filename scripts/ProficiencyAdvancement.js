@@ -19,6 +19,11 @@ export class ProficiencyAdvancement extends dnd5e.documents.advancement.Advancem
     }
 
     async apply(level, data) {
+        if (!Object.keys(data).length) {
+            data = {
+                0: this.configuration.type
+            };
+        }
         const { actor } = this;
 
         const proficiencies = Object.values(data);
@@ -104,15 +109,50 @@ class ProficiencyAdvancementConfig extends dnd5e.applications.advancement.Advanc
         const data = super.getData();
         data.showLevelSelector = true;
 
-        data.proficencyTypeSelect = {
-            ability: 'Saving Throws',
-            skill: 'Skills',
-            weapon: 'Weapons',
-            armor: 'Armor',
-            spellcasting: 'Spellcasting'
-        };
+        data.proficencyTypeSelect = `<select name="configuration.type">`;
+
+        // Player selects specific proficiency.
+        data.proficencyTypeSelect += `<option value="skill">Skills</option>`;
+        data.proficencyTypeSelect += `<option value="weapon">Weapons</option>`;
+
+        // GM selects specific proficiency.
+        data.proficencyTypeSelect += `<option value="spellcasting-spellcasting">Spellcasting</option>`;
+        data.proficencyTypeSelect += `<optgroup label="Saving Throws">`;
+        for (const [abilityKey, abilityLabel] of Object.entries(CONFIG.DND5E.abilities)) {
+            data.proficencyTypeSelect += `<option value="abilities-${abilityKey}">${abilityLabel}</option>`;
+        }
+        data.proficencyTypeSelect += `</optgroup>`;
+
+        data.proficencyTypeSelect += `<optgroup label="Armor">`;
+        data.proficencyTypeSelect += `<option value="armor-unarmored">Unarmored</option>`;
+        const armorTraits = await dnd5e.documents.Trait.choices('armor');
+        processTraits(armorTraits, 'armor');
+        data.proficencyTypeSelect += `</optgroup>`;
+
+        function processTraits(traitsObj, type) {
+            for (const [key, trait] of Object.entries(traitsObj)) {
+                const option = `<option value="${type}-${key}">${trait.label}</option>`;
+                data.proficencyTypeSelect += option;
+
+                const children = trait.children || {};
+                processTraits(children, type);
+            }
+        }
+
+
+
+        data.proficencyTypeSelect += `</select>`;
+
 
         return data;
+    }
+
+    activateListeners($html) {
+        super.activateListeners($html);
+        const [html] = $html;
+
+        const profTypeSelect = html.querySelector('select[name="configuration.type"]');
+        profTypeSelect.value = this.advancement.configuration.type;
     }
 
 }
@@ -130,78 +170,57 @@ class ProficiencyAdvancementFlow extends dnd5e.applications.advancement.Advancem
         const data = super.getData();
 
         const { advancement } = this;
-        const { type, count, increase } = advancement.configuration;
+        let { type, count, increase } = advancement.configuration;
+        const [proficiencyType, proficiencySelection] = type.split('-');
 
+        count = count || 1;
         data.increase = increase || 1;
         data.content = ``;
 
-        for (let i = 0; i < count; i++) {
-            const select = document.createElement('select');
-            select.name = i;
-
-            switch (type) {
-                case 'ability':
-                    for (const [k, v] of Object.entries(CONFIG.DND5E.abilities)) {
-                        const option = document.createElement('option');
-                        option.value = `abilities-${k}`;
-                        option.text = v;
-                        select.add(option);
-                    }
-                    data.content += `
-                        <div>
-                            ${select.outerHTML}
-                        </div>
-                    `;
+        if (['spellcasting', 'abilities', 'armor'].includes(proficiencyType)) {
+            switch (proficiencyType) {
+                case 'spellcasting':
+                    data.content += `Increase spellcasting proficiency by ${data.increase}.`;
                     break;
-                case 'skill':
-                    for (const [k, v] of Object.entries(CONFIG.DND5E.skills)) {
-                        const option = document.createElement('option');
-                        option.value = `skills-${k}`;
-                        option.text = v.label;
-                        select.add(option);
-                    }
-                    data.content += `
-                        <div>
-                            ${select.outerHTML}
-                        </div>
-                    `;
-                    break;
-                case 'weapon':
-                    const weaponTraits = await dnd5e.documents.Trait.choices('weapon');
-                    processTraits(weaponTraits, 'weapon', select);
-                    data.content += `
-                        <div>
-                            ${select.outerHTML}
-                        </div>
-                    `;
+                case 'abilities':
+                    data.content += `Increase ${CONFIG.DND5E.abilities[proficiencySelection]} saving throw proficiency by ${data.increase}.`;
                     break;
                 case 'armor':
-                    const unarmoredOption = document.createElement('option');
-                    unarmoredOption.value = 'armor-unarmored';
-                    unarmoredOption.text = 'Unarmored';
-                    select.add(unarmoredOption);
-
-                    const armorTraits = await dnd5e.documents.Trait.choices('armor');
-                    processTraits(armorTraits, 'armor', select);
-                    
-                    data.content += `
-                        <div>
-                            ${select.outerHTML}
-                        </div>
-                    `;
-                    break;
-                case 'spellcasting':
-                    data.content += `
-                    <div>
-                        <select name="0">
-                            <option value="spellcasting-spellcasting" disabled>Spellcasting</option>;
-                        </select>
-                    </div>
-                    `;
+                    data.content += `Increase ${proficiencySelection} proficiency by ${data.increase}.`;
                     break;
             }
+        } else {
+            data.content += `Increase selected proficiencies by ${data.increase}.`;
 
-            if (type === 'spellcasting') break;
+            for (let i = 0; i < count; i++) {
+                const select = document.createElement('select');
+                select.name = i;
+    
+                switch (proficiencyType) {
+                    case 'skill':
+                        for (const [k, v] of Object.entries(CONFIG.DND5E.skills)) {
+                            const option = document.createElement('option');
+                            option.value = `skills-${k}`;
+                            option.text = v.label;
+                            select.add(option);
+                        }
+                        data.content += `
+                            <div>
+                                ${select.outerHTML}
+                            </div>
+                        `;
+                        break;
+                    case 'weapon':
+                        const weaponTraits = await dnd5e.documents.Trait.choices('weapon');
+                        processTraits(weaponTraits, 'weapon', select);
+                        data.content += `
+                            <div>
+                                ${select.outerHTML}
+                            </div>
+                        `;
+                        break;
+                }
+            }
         }
 
         function processTraits(traitsObj, type, selectParent) {
