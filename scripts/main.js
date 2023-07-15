@@ -214,7 +214,7 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
         spellcastingProficiencySelect.appendChild(option);
     }
 
-    const spellcastingAttributeDiv = html.querySelector('div.spellcasting-attribute');
+    const spellcastingAttributeDiv = html.querySelector('div.spellcasting-ability');
     if (spellcastingAttributeDiv) spellcastingAttributeDiv.after(spellcastingProficiencyDiv);
 
     const spellAttackModSpan = html.querySelector('span.spell-attack-mod');

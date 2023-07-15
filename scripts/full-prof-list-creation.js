@@ -4,8 +4,8 @@
         identifierSelect.innerHTML = `<select name="value.proficiency">`;
 
         identifierSelect.innerHTML += `<optgroup label="Saving Throws">`;
-        for (const [abilityKey, abilityLabel] of Object.entries(CONFIG.DND5E.abilities)) {
-            identifierSelect.innerHTML += `<option value="abilities-${abilityKey}">${abilityLabel}</option>`;
+        for (const [abilityKey, ability] of Object.entries(CONFIG.DND5E.abilities)) {
+            identifierSelect.innerHTML += `<option value="abilities-${abilityKey}">${ability.label}</option>`;
         }
         identifierSelect.innerHTML += `</optgroup>`;
 

@@ -29,7 +29,7 @@ export class ProficiencyAdvancement extends dnd5e.documents.advancement.Advancem
         const proficiencies = Object.values(data);
         for (const currentProficiency of proficiencies) {
             const [proficiencyType, proficiency] = currentProficiency.split('-');
-            if (!proficiency) return;
+            if (proficiencyType !== 'spellcasting' && !proficiency) return;
 
             const levelsToIncrease = parseInt(this.configuration.increase) || 1;
             let oldProficiencyLevel, newProficiencyLevel;
@@ -118,8 +118,8 @@ class ProficiencyAdvancementConfig extends dnd5e.applications.advancement.Advanc
         // GM selects specific proficiency.
         data.proficencyTypeSelect += `<option value="spellcasting-spellcasting">Spellcasting</option>`;
         data.proficencyTypeSelect += `<optgroup label="Saving Throws">`;
-        for (const [abilityKey, abilityLabel] of Object.entries(CONFIG.DND5E.abilities)) {
-            data.proficencyTypeSelect += `<option value="abilities-${abilityKey}">${abilityLabel}</option>`;
+        for (const [abilityKey, ability] of Object.entries(CONFIG.DND5E.abilities)) {
+            data.proficencyTypeSelect += `<option value="abilities-${abilityKey}">${ability.label}</option>`;
         }
         data.proficencyTypeSelect += `</optgroup>`;
 
@@ -183,7 +183,7 @@ class ProficiencyAdvancementFlow extends dnd5e.applications.advancement.Advancem
                     data.content += `Increase spellcasting proficiency by ${data.increase}.`;
                     break;
                 case 'abilities':
-                    data.content += `Increase ${CONFIG.DND5E.abilities[proficiencySelection]} saving throw proficiency by ${data.increase}.`;
+                    data.content += `Increase ${CONFIG.DND5E.abilities[proficiencySelection]?.label} saving throw proficiency by ${data.increase}.`;
                     break;
                 case 'armor':
                     data.content += `Increase ${proficiencySelection} proficiency by ${data.increase}.`;
