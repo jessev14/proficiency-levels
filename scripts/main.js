@@ -44,7 +44,7 @@ Hooks.once('init', () => {
     };
 
     libWrapper.register(moduleID, 'CONFIG.Actor.documentClass.prototype.rollSkill', newRollSkill, 'WRAPPER');
-    libWrapper.register(moduleID, 'dnd5e.applications.actor.ActorSheet5e.prototype._onCycleSkillProficiency', newCycleSkillProficiency, 'OVERRIDE');
+    libWrapper.register(moduleID, 'dnd5e.applications.actor.ActorSheet5e.prototype._onCycleProficiency', newCycleSkillProficiency, 'OVERRIDE');
 
     libWrapper.register(moduleID, 'CONFIG.Actor.documentClass.prototype.rollAbilitySave', newRollAbilitySave, 'WRAPPER');
     libWrapper.register(moduleID, 'dnd5e.applications.actor.ActorSheet5e.prototype._onToggleAbilityProficiency', newToggleAbilityProficiency, 'OVERRIDE');
@@ -106,7 +106,7 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
 
     const skillsUl = html.querySelector('ul.skills-list');
     for (const skillLi of skillsUl.querySelectorAll('li.skill')) {
-        const skillID = skillLi.dataset.skill;
+        const skillID = skillLi.dataset.key;
         const skill = actor.system?.skills?.[skillID];
         if (!skill) continue;
 
@@ -313,12 +313,12 @@ async function newRollAbilitySave(wrapped, abilityID, options = {}) {
     return wrapped(abilityID, options);
 }
 
-function newCycleSkillProficiency(event) {
+async function newCycleSkillProficiency(event) {
     if ( event.currentTarget.classList.contains("disabled") ) return;
     event.preventDefault();
     const parent = event.currentTarget.closest(".skill");
     const field = parent.querySelector('[name$=".value"]');
-    const value = this.actor._source.system.skills[parent.dataset.skill]?.value ?? 0;
+    const value = getProperty(this.actor, `flags.${moduleID}.${field.name}`) ?? this.actor._source.system[property]?.[key]?.value ?? 0;
 
     // Cycle to the next or previous skill level
     const levels = [0, 1, 0.5, 2, 3, 4, 5, 6, 7];
@@ -327,6 +327,7 @@ function newCycleSkillProficiency(event) {
     field.value = levels[next % 9];
 
     // Update the field value and save the form
+    await this.actor.update({[`flags.${moduleID}.${field.name}`]: Number(field.value)});
     return this._onSubmit(event);
 }
 
