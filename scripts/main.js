@@ -318,7 +318,7 @@ async function newCycleSkillProficiency(event) {
     event.preventDefault();
     const parent = event.currentTarget.closest(".skill");
     const field = parent.querySelector('[name$=".value"]');
-    const value = getProperty(this.actor, `flags.${moduleID}.${field.name}`) ?? this.actor._source.system[property]?.[key]?.value ?? 0;
+    const value = getProperty(this.actor, `flags.${moduleID}.${field.name}`) ?? this.actor._source.system.skills?.[parent.dataset.key]?.value ?? 0;
 
     // Cycle to the next or previous skill level
     const levels = [0, 1, 0.5, 2, 3, 4, 5, 6, 7];
