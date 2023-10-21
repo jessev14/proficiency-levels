@@ -1,3 +1,4 @@
+import { proficiencyBonusMap } from './CONST.js';
 import { moduleID } from './main.js';
 
 const lg = x => console.log(x);
@@ -19,79 +20,41 @@ export class ProficiencyAdvancement extends dnd5e.documents.advancement.Advancem
     }
 
     async apply(level, data) {
-        if (!Object.keys(data).length) {
-            data = {
-                0: this.configuration.type
-            };
-        }
         const { actor } = this;
 
+        const proficiencyType = this.configuration.type;
+        const levelsToIncrease = this.configuration.increase;
         const proficiencies = Object.values(data);
-        for (const currentProficiency of proficiencies) {
-            const [proficiencyType, proficiency] = currentProficiency.split('-');
-            if (proficiencyType !== 'spellcasting' && !proficiency) return;
+        const updates = {};
 
-            const levelsToIncrease = parseInt(this.configuration.increase) || 1;
-            let oldProficiencyLevel, newProficiencyLevel;
-            switch (proficiencyType) {
-                case 'abilities':
-                    oldProficiencyLevel = actor.system.abilities[proficiency].proficient || 0;
-                    await this.updateSource({ [`configuration.oldProf.${currentProficiency}`]: oldProficiencyLevel });
-                    newProficiencyLevel = Math.min(oldProficiencyLevel + levelsToIncrease, 7);
-
-                    await actor.updateSource({ [`system.abilities.${proficiency}.proficient`]: newProficiencyLevel });
-                    break;
-                case 'skills':
-                    oldProficiencyLevel = actor.flags[moduleID]?.system?.skills[proficiency]?.value || 0;
-                    await this.updateSource({ [`configuration.oldProf.${currentProficiency}`]: oldProficiencyLevel });
-                    newProficiencyLevel = Math.min(oldProficiencyLevel + levelsToIncrease, 7);
-
-                    await actor.updateSource({ [`system.skills.${proficiency}.value`]: newProficiencyLevel });
-                    break;
-                case 'weapon':
-                case 'armor':
-                    oldProficiencyLevel = actor.flags[moduleID]?.[proficiencyType]?.[proficiency] || 0;
-                    await this.updateSource({ [`configuration.oldProf.${currentProficiency}`]: oldProficiencyLevel });
-                    newProficiencyLevel = Math.min(oldProficiencyLevel + levelsToIncrease, 7);
-
-                    await actor.updateSource({ [`flags.${moduleID}.${proficiencyType}.${proficiency}`]: newProficiencyLevel });
-                    break;
-                case 'spellcasting':
-                    oldProficiencyLevel = actor.flags[moduleID]?.spellcasting || 0;
-                    await this.updateSource({ [`configuration.oldProf.${currentProficiency}`]: oldProficiencyLevel });
-                    newProficiencyLevel = Math.min(oldProficiencyLevel + levelsToIncrease, 7);
-
-                    await actor.updateSource({ [`flags.${moduleID}.${proficiencyType}`]: newProficiencyLevel });
-                    break;
-            }
+        switch (proficiencyType) {
+            case 'skill':
+                for (const proficiency of proficiencies) {
+                    updates[`flags.${moduleID}.skills.${proficiency}.value`] = (actor.getFlag(moduleID, `skills.${proficiency}.value`) || 0) + levelsToIncrease;
+                }
+                break
         }
+        actor.updateSource(updates);
+        this.updateSource({value: data});
     }
 
     async reverse(level) {
         const { actor } = this;
 
-        const proficiencies = Object.keys(this.configuration.oldProf || {});
-        for (const currentProficiency of proficiencies) {
-            const [proficiencyType, proficiency] = currentProficiency.split('-');
-            if (!proficiency) return;
-
-            const newProficiencyLevel = this.configuration.oldProf[currentProficiency];
-            switch (proficiencyType) {
-                case 'abilities':
-                    await actor.updateSource({ [`system.abilities.${proficiency}.proficient`]: newProficiencyLevel });
-                    break;
-                case 'skills':
-                    await actor.updateSource({ [`system.skills.${proficiency}.value`]: newProficiencyLevel });
-                    break;
-                case 'weapon':
-                case 'armor':
-                    await actor.updateSource({ [`flags.${moduleID}.${proficiencyType}.${proficiency}`]: newProficiencyLevel });
-                    break;
-                case 'spellcasting':
-                    await actor.updateSource({ [`flags.${moduleID}.${proficiencyType}`]: newProficiencyLevel });
-                    break;
-            }
+        const proficencyType = this.configuration.type;
+        const levelsToIncrease = this.configuration.increase;
+        const proficiencies = Object.values(this.value);
+        const updates = {};
+        switch (proficencyType) {
+            case 'skill':
+                for (const proficiency of proficiencies) {
+                    updates[`flags.${moduleID}.skills.${proficiency}.value`] = actor.getFlag(moduleID, `skills.${proficiency}.value`) - levelsToIncrease;
+                }
+                break;
         }
+
+        await actor.updateSource(updates);
+        this.updateSource({value: {}});
     }
 
 }
@@ -109,40 +72,25 @@ class ProficiencyAdvancementConfig extends dnd5e.applications.advancement.Advanc
         const data = super.getData();
         data.showLevelSelector = true;
 
-        data.proficencyTypeSelect = `<select name="configuration.type">`;
 
-        // Player selects specific proficiency.
-        data.proficencyTypeSelect += `<option value="skill">Skills</option>`;
-        data.proficencyTypeSelect += `<option value="weapon">Weapons</option>`;
-
-        // GM selects specific proficiency.
-        data.proficencyTypeSelect += `<option value="spellcasting-spellcasting">Spellcasting</option>`;
-        data.proficencyTypeSelect += `<optgroup label="Saving Throws">`;
-        for (const [abilityKey, ability] of Object.entries(CONFIG.DND5E.abilities)) {
-            data.proficencyTypeSelect += `<option value="abilities-${abilityKey}">${ability.label}</option>`;
-        }
-        data.proficencyTypeSelect += `</optgroup>`;
-
-        data.proficencyTypeSelect += `<optgroup label="Armor">`;
-        data.proficencyTypeSelect += `<option value="armor-unarmored">Unarmored</option>`;
+        data.armorTypes = `<option value="unarmored">Unarmored</option>`
         const armorTraits = await dnd5e.documents.Trait.choices('armor');
         processTraits(armorTraits, 'armor');
-        data.proficencyTypeSelect += `</optgroup>`;
 
         function processTraits(traitsObj, type) {
             for (const [key, trait] of Object.entries(traitsObj)) {
-                const option = `<option value="${type}-${key}">${trait.label}</option>`;
-                data.proficencyTypeSelect += option;
+                const option = `<option value="${key}">${trait.label}</option>`;
+                data.armorTypes += option;
 
                 const children = trait.children || {};
                 processTraits(children, type);
             }
         }
 
-
-
-        data.proficencyTypeSelect += `</select>`;
-
+        data.abilities = ``;
+        for (const [abilityKey, ability] of Object.entries(CONFIG.DND5E.abilities)) {
+            data.abilities += `<option value="${abilityKey}">${ability.label}</option>`;
+        }
 
         return data;
     }
@@ -153,6 +101,15 @@ class ProficiencyAdvancementConfig extends dnd5e.applications.advancement.Advanc
 
         const profTypeSelect = html.querySelector('select[name="configuration.type"]');
         profTypeSelect.value = this.advancement.configuration.type;
+
+        for (const inputDiv of html.querySelectorAll('div.selection')) {
+            if (
+                (inputDiv.id === profTypeSelect.value)
+                || (inputDiv.id === 'number-of-proficiencies' && ['skills', 'weapons'].includes(this.advancement.configuration.type))
+            ) inputDiv.style.display = 'flex'; 
+
+            if (inputDiv.querySelector('select')) inputDiv.querySelector('select').value = this.advancement.configuration[inputDiv.id];
+        }
     }
 
 }
@@ -200,7 +157,7 @@ class ProficiencyAdvancementFlow extends dnd5e.applications.advancement.Advancem
                     case 'skill':
                         for (const [k, v] of Object.entries(CONFIG.DND5E.skills)) {
                             const option = document.createElement('option');
-                            option.value = `skills-${k}`;
+                            option.value = `${k}`;
                             option.text = v.label;
                             select.add(option);
                         }
