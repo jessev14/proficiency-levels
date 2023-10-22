@@ -90,7 +90,6 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
         }
     };
     
-
     for (const itemType of ['weapon', 'armor']) {
         const configButton = html.querySelector(`a.trait-selector[data-trait="${itemType}"]`);
         if (!configButton) continue;
@@ -182,6 +181,64 @@ Hooks.on('renderActorAbilityConfig', (app, [html], appData) => {
         proficiencySelect.appendChild(option);
     }
     proficiencySelect.value = proficiencyLevel;
+});
+
+Hooks.on('renderTraitSelector', (app, [html], appData) => {
+    const isWeapon = app.trait === 'weapon';
+    const isArmor = app.trait === 'armor';
+    if (!isWeapon && !isArmor) return;
+
+    const selector = isWeapon ? 'weapon' : 'armor';
+
+    for (const li of html.querySelectorAll('li')) {
+        const input = li.querySelector('input');
+        const inputName = input.name.split('.')[1];
+        input.remove();
+
+        const select = document.createElement('select');
+        select.name = `flags.${moduleID}.${selector}.${inputName}`;
+        select.dataset.dtype = 'Number';
+        for (const [value, prof] of Object.entries(CONFIG.DND5E.proficiencyLevels)) {
+            const option = document.createElement('option');
+            option.value = value;
+            option.innerText = prof;
+            select.appendChild(option);
+        }
+        select.value = app.object.getFlag(moduleID, `${selector}.${inputName}`);
+        const label = li.querySelector('label');
+        label.classList.add(moduleID);
+        label.appendChild(select);
+    }
+
+    if (selector === 'armor') {
+        const select = html.querySelector('select').cloneNode(true);
+        select.name = `flags.${moduleID}.armor.unarmored`;
+        const flagData = app.object.getFlag(moduleID, 'armor.unarmored');
+        for (const option of select.querySelectorAll('option')) {
+            if (option.value == flagData) {
+                option.selected = true;
+                break;
+            }
+        }
+        const label = document.createElement('label');
+        label.classList.add('checkbox', moduleID);
+        label.innerText = 'Unarmored';
+        label.appendChild(select);
+        const li = document.createElement('li');
+        li.appendChild(label);
+        html.querySelector('ol').prepend(li);
+    }
+
+    const og_prepareUpdateData = app._prepareUpdateData;
+    app._prepareUpdateData = function (formData) {
+        const updateData = og_prepareUpdateData.call(app, formData);
+        const isCustom = `system.traits.${selector}Prof.custom` in updateData;
+        if (isCustom) {
+            delete formData.custom;
+            formData[`system.traits.${selector}Prof.custom`] = updateData[`system.traits.${selector}Prof.custom`];
+        }
+        return formData;
+    }
 });
 
 

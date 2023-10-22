@@ -23,32 +23,67 @@ export class ProficiencyAdvancement extends dnd5e.documents.advancement.Advancem
         const { actor } = this;
 
         const proficiencyType = this.configuration.type;
-        const levelsToIncrease = this.configuration.increase;
-        const proficiencies = Object.values(data);
+        const levelsToIncrease = this.configuration.increase || 1;
+        const proficiency = this.configuration[proficiencyType];
         const updates = {};
+        const value = { proficiencyType };
 
         switch (proficiencyType) {
-            case 'skill':
-                for (const proficiency of proficiencies) {
-                    updates[`flags.${moduleID}.skills.${proficiency}.value`] = (actor.getFlag(moduleID, `skills.${proficiency}.value`) || 0) + levelsToIncrease;
+            case 'armor':
+                updates[`flags.${moduleID}.armor.${proficiency}`] = Math.min(7, Math.floor(actor.getFlag(moduleID, `armor.${proficiency}`)) + levelsToIncrease);
+                value.proficiencies = [proficiency];
+                break;
+            case 'abilities':
+                updates[`flags.${moduleID}.abilities.${proficiency}.proficient`] = Math.min(7, Math.floor(actor.getFlag(moduleID, `abilities.${proficiency}.proficient`)) + levelsToIncrease);
+                value.proficiencies = [proficiency];
+                break;
+            case 'spellcasting':
+                updates[`flags.${moduleID}.spellcasting`] = Math.min(7, Math.floor(actor.getFlag(moduleID, `spellcasting`)) + levelsToIncrease);
+                value.proficiencies = ['spellcasting'];
+                break;
+            case 'skills':
+                for (const proficiency of Object.values(data)) {
+                    updates[`flags.${moduleID}.skills.${proficiency}.value`] = Math.min(7, (Math.floor(actor.getFlag(moduleID, `skills.${proficiency}.value`)) || 0) + levelsToIncrease);
                 }
-                break
+                value.proficiencies = Object.values(data);
+                break;
+            case 'weapons': 
+                for (const proficiency of Object.values(data)) {
+                    updates[`flags.${moduleID}.weapon.${proficiency}`] = Math.min(7, (Math.floor(actor.getFlag(moduleID, `weapon.${proficiency}`)) || 0) + levelsToIncrease);
+                }
+                value.proficiencies = Object.values(data);
+                break;
         }
-        actor.updateSource(updates);
-        this.updateSource({value: data});
+
+        await actor.updateSource(updates);
+        this.updateSource({ value });
     }
 
     async reverse(level) {
         const { actor } = this;
 
-        const proficencyType = this.configuration.type;
-        const levelsToIncrease = this.configuration.increase;
-        const proficiencies = Object.values(this.value);
+        const { proficiencyType, proficiencies } = this.value;
+        const proficiency = proficiencies[0];
+        const levelsToIncrease = this.configuration.increase || 1;
         const updates = {};
-        switch (proficencyType) {
-            case 'skill':
+        switch (proficiencyType) {
+            case 'armor':
+                updates[`flags.${moduleID}.armor.${proficiency}`] = Math.max(0, Math.floor(actor.getFlag(moduleID, `armor.${proficiency}`)) - levelsToIncrease);
+                break;
+            case 'abilities':
+                updates[`flags.${moduleID}.abilities.${proficiency}.proficient`] = Math.max(0, Math.floor(actor.getFlag(moduleID, `abilities.${proficiency}.proficient`)) - levelsToIncrease);
+                break;
+            case 'spellcasting':
+                updates[`flags.${moduleID}.spellcasting`] = Math.max(0, Math.floor(actor.getFlag(moduleID, `spellcasting`)) - levelsToIncrease);
+                break;
+            case 'skills':
                 for (const proficiency of proficiencies) {
-                    updates[`flags.${moduleID}.skills.${proficiency}.value`] = actor.getFlag(moduleID, `skills.${proficiency}.value`) - levelsToIncrease;
+                    updates[`flags.${moduleID}.skills.${proficiency}.value`] = Math.max(0, Math.floor(actor.getFlag(moduleID, `skills.${proficiency}.value`)) - levelsToIncrease);
+                }
+                break;
+            case 'weapons': 
+                for (const proficiency of proficiencies) {
+                    updates[`flags.${moduleID}.weapon.${proficiency}`] = Math.max(0, Math.floor(actor.getFlag(moduleID, `weapon.${proficiency}`)) - levelsToIncrease);
                 }
                 break;
         }
@@ -56,7 +91,6 @@ export class ProficiencyAdvancement extends dnd5e.documents.advancement.Advancem
         await actor.updateSource(updates);
         this.updateSource({value: {}});
     }
-
 }
 
 
@@ -127,11 +161,9 @@ class ProficiencyAdvancementFlow extends dnd5e.applications.advancement.Advancem
         const data = super.getData();
 
         const { advancement } = this;
-        let { type, count, increase } = advancement.configuration;
-        const [proficiencyType, proficiencySelection] = type.split('-');
+        const proficiencyType = advancement.configuration.type;
 
-        count = count || 1;
-        data.increase = increase || 1;
+        data.increase = advancement.configuration.increase || 1;
         data.content = ``;
 
         if (['spellcasting', 'abilities', 'armor'].includes(proficiencyType)) {
@@ -140,21 +172,21 @@ class ProficiencyAdvancementFlow extends dnd5e.applications.advancement.Advancem
                     data.content += `Increase spellcasting proficiency by ${data.increase}.`;
                     break;
                 case 'abilities':
-                    data.content += `Increase ${CONFIG.DND5E.abilities[proficiencySelection]?.label} saving throw proficiency by ${data.increase}.`;
+                    data.content += `Increase ${CONFIG.DND5E.abilities[advancement.configuration.abilities]?.label} saving throw proficiency by ${data.increase}.`;
                     break;
                 case 'armor':
-                    data.content += `Increase ${proficiencySelection} proficiency by ${data.increase}.`;
+                    data.content += `Increase ${advancement.configuration.armor} proficiency by ${data.increase}.`;
                     break;
             }
         } else {
             data.content += `Increase selected proficiencies by ${data.increase}.`;
 
-            for (let i = 0; i < count; i++) {
+            for (let i = 0; i < advancement.configuration.count; i++) {
                 const select = document.createElement('select');
                 select.name = i;
     
                 switch (proficiencyType) {
-                    case 'skill':
+                    case 'skills':
                         for (const [k, v] of Object.entries(CONFIG.DND5E.skills)) {
                             const option = document.createElement('option');
                             option.value = `${k}`;
@@ -167,7 +199,7 @@ class ProficiencyAdvancementFlow extends dnd5e.applications.advancement.Advancem
                             </div>
                         `;
                         break;
-                    case 'weapon':
+                    case 'weapons':
                         const weaponTraits = await dnd5e.documents.Trait.choices('weapon');
                         processTraits(weaponTraits, 'weapon', select);
                         data.content += `
@@ -183,7 +215,7 @@ class ProficiencyAdvancementFlow extends dnd5e.applications.advancement.Advancem
         function processTraits(traitsObj, type, selectParent) {
             for (const [key, trait] of Object.entries(traitsObj)) {
                 const option = document.createElement('option');
-                option.value = `${type}-${key}`;
+                option.value = `${key}`;
                 option.text = trait.label;
                 selectParent.add(option);
 
