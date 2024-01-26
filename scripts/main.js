@@ -5,6 +5,8 @@ export const moduleID = 'proficiency-levels';
 
 const lg = x => console.log(x);
 
+let tidy5eapi;
+
 
 Hooks.once('init', () => {
     CONFIG.DND5E.proficiencyLevels = {
@@ -26,8 +28,14 @@ Hooks.once('init', () => {
     CONFIG.DND5E.advancementTypes['Proficiency'] = ProficiencyAdvancement;
 });
 
+Hooks.once('tidy5e-sheet.ready', api => {
+    tidy5eapi = api;
+});
+
 
 Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
+    if(tidy5eapi.isTidy5eSheet(app)) return;
+
     const actor = app.object;
     if (!actor.system) return;
 
@@ -161,6 +169,63 @@ Hooks.on('renderActorSheet5e', async (app, [html], appData) => {
         spellAttackModSpan.innerText = `+ ${getBonus(actor, spellcastingProficiencyLevel) + spellcastingAbilityMod}`
         spellAttackModSpan.title = '';
     }
+});
+
+Hooks.on('tidy5e-sheet.renderActorSheet', (app, html, appData, force) => {
+    const actor = app.object;
+    if (!actor.system) return;
+
+    const abilityDivs = [].slice.call(html.querySelector('section.actor-stats').querySelectorAll('div:not([class])'), 1);
+    for (const abilityID of Object.keys(CONFIG.DND5E.abilities)) {
+        const proficiencyLevel = Math.min(7, actor.flags[moduleID].abilities?.[abilityID]?.proficient ?? actor.system.abilities[abilityID].proficient);
+
+        const abilityDiv = abilityDivs.find(d => d.querySelector(`input[data-tidy-field="system.abilities.${abilityID}.value"]`));
+        const button = abilityDiv.querySelector('button.proficiency-toggle');
+        button.innerHTML = proficiencyLevel;
+        button.title = CONFIG.DND5E.proficiencyLevels[proficiencyLevel];
+        button.style['font-size'] = '15px';
+        button.style['font-weight'] = '900';
+        button.style.color = proficiencyColorMap[proficiencyLevel];
+
+        button.onclick = () => {
+            const newProficiencyLevel = proficiencyLevel + 1 > 7 ? 0 : proficiencyLevel + 1;
+            return actor.setFlag(moduleID, `abilities.${abilityID}.proficient`, newProficiencyLevel);
+        };
+        button.oncontextmenu = () => {
+            const newProficiencyLevel = proficiencyLevel - 1 < 0 ? 7 : proficiencyLevel - 1;
+            return actor.setFlag(moduleID, `abilities.${abilityID}.proficient`, newProficiencyLevel);
+        }
+    }
+
+    const skillLis = [].slice.call(html.querySelector('ul.skills-list').querySelectorAll('li'));
+    for (const skillID of Object.keys(CONFIG.DND5E.skills)) {
+        const proficiencyLevel = Math.min(7, actor.flags[moduleID].skills?.[skillID]?.value ?? actor.system.skills[skillID].value);
+
+        const skillLabel = CONFIG.DND5E.skills[skillID].label;
+        const skillLi = skillLis.find(l => {
+            const button = l.querySelector('button.tidy5e-skill-name');
+            return button.innerText === skillLabel;
+        });
+        if (!skillLi) continue;
+
+        const button = skillLi.querySelector('button.skill-proficiency-toggle');
+        button.innerHTML = proficiencyLevel;
+        button.title = CONFIG.DND5E.proficiencyLevels[proficiencyLevel];
+        button.style['font-size'] = '15px';
+        button.style['font-weight'] = '900';
+        button.style.color = proficiencyColorMap[proficiencyLevel];
+
+        button.onclick = () => {
+            const newProficiencyLevel = proficiencyLevel + 1 > 7 ? 0 : proficiencyLevel + 1;
+            return actor.setFlag(moduleID, `skills.${skillID}.value`, newProficiencyLevel);
+        };
+        button.oncontextmenu = () => {
+            const newProficiencyLevel = proficiencyLevel - 1 < 0 ? 7 : proficiencyLevel - 1;
+            return actor.setFlag(moduleID, `skills.${skillID}.value`, newProficiencyLevel);
+        }
+
+    }
+
 });
 
 Hooks.on('renderActorAbilityConfig', (app, [html], appData) => {
