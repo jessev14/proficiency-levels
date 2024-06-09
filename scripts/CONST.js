@@ -28,3 +28,9 @@ export const newProficiencyLevels = {
     6: 'Demigod',
     7: 'God'
 };
+
+export const armorMap = {
+    'light': 'lgt',
+    'medium': 'med',
+    'heavy': 'hvy'
+};

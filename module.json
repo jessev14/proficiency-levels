@@ -11,10 +11,11 @@
     "version": "1.0.0",
     "compatibility": {
         "minimum": "11",
-        "verified": "11"
+        "verified": "12"
     },
     "esmodules": [
-        "./scripts/main.js"
+        "./scripts/proficiency-levels.js",
+        "./scripts/trait-advancement-patches.js"
     ],
     "styles": [
         "./styles/style.css"
@@ -26,8 +27,8 @@
                 "id": "dnd5e",
                 "type": "system",
                 "compatibility": {
-                    "minimum": "2.2.2",
-                    "verified": "2.2.2"
+                    "minimum": "3.0.0",
+                    "verified": "3.2.0"
                 }
             }
         ],
@@ -37,7 +38,7 @@
                 "type": "module",
                 "compatibility": {
                     "minimum": "1",
-                    "verified": "1.12.7.1"
+                    "verified": "1.12.13.1"
                 }
             }
         ]
