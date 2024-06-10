@@ -10,8 +10,6 @@ Hooks.once('init', () => {
 
 
 Hooks.on('renderTraitConfig', (app, [html], appData) => {
-    if (!['saves', 'skills', 'armor', 'weapon', 'tool'].includes(app.trait)) return;
-
     const modeSelectDiv = html.querySelector('select[name="configuration.mode"]').closest('div.form-group');
     const nUpgradesDiv = document.createElement('div');
     nUpgradesDiv.classList.add('form-group');
@@ -23,7 +21,7 @@ Hooks.on('renderTraitConfig', (app, [html], appData) => {
         <p class="hint">Number of proficiency levels to gain.</p>
     `;
     modeSelectDiv.after(nUpgradesDiv);
-    modeSelectDiv.remove();
+    // modeSelectDiv.remove();
 });
 
 
