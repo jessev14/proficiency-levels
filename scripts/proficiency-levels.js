@@ -73,7 +73,7 @@ Hooks.on('renderActorSheet', (app, [html], appData) => {
         spellcastingProficiencySelect.value = actor.getFlag(moduleID, 'spellcasting');
         spellcastingProficiencySelect.addEventListener('change', event => {
             const proficiencyLevel = event.target.value;
-            return actor.setFlag(moduleID, 'spellcasting', proficiencyLevel);
+            return actor.setFlag(moduleID, 'spellcasting', Number(proficiencyLevel));
         });
         const spellsList = html.querySelector('div.tab.spells').querySelector('dnd5e-inventory.inventory-element');
         spellsList.before(spellcastingProficiencyDiv);
@@ -99,7 +99,7 @@ Hooks.on('renderActorSheet', (app, [html], appData) => {
         spellcastingProficiencySelect.value = actor.getFlag(moduleID, 'spellcasting');
         spellcastingProficiencySelect.addEventListener('change', event => {
             const proficiencyLevel = event.target.value;
-            return actor.setFlag(moduleID, 'spellcasting', proficiencyLevel);
+            return actor.setFlag(moduleID, 'spellcasting', Number(proficiencyLevel));
         });
         spellcastingFooter.appendChild(spellcastingProficiencyDiv);
     };
